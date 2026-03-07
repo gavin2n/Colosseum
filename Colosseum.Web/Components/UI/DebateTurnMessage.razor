@@ -1,0 +1,84 @@
+@namespace Colosseum.Web.Components.UI
+@using Colosseum.Core.Models
+
+<div class="msg @(HasMentions ? "rebuttal" : "") @(_isCont ? "cont" : "")" style="--g-col:@Turn.GladiatorAccentColour">
+  <div class="msg-avatar">@Turn.GladiatorName[0]</div>
+  <div class="msg-body">
+    @if (!_isCont)
+    {
+      <div class="msg-meta">
+        <span class="msg-name">@Turn.GladiatorName</span>
+        <span class="msg-domain">@Domain</span>
+        <span class="msg-time">@Turn.Timestamp.ToLocalTime().ToString("H:mm")</span>
+      </div>
+    }
+    <div class="msg-text">@((MarkupString)RenderText())</div>
+
+    @foreach (var issueId in Turn.ReferencedIssueIds)
+    {
+      var issue = AllIssues.FirstOrDefault(i => i.Id == issueId);
+      if (issue is not null)
+      {
+        <div class="msg-overlap-flag" @onclick="() => OnIssueClick.InvokeAsync(issue.Id)">
+          <span class="overlap-icon">⚭</span>
+          May overlap: <strong>@issue.Title</strong>
+          <span class="flag-arr" style="margin-left:auto">→</span>
+        </div>
+      }
+    }
+  </div>
+</div>
+
+@code {
+  [Parameter, EditorRequired] public DebateTurn Turn { get; set; } = null!;
+  [Parameter] public IReadOnlyList<Issue> AllIssues { get; set; } = [];
+  [Parameter] public EventCallback<Guid> OnIssueClick { get; set; }
+
+  // Track consecutive messages from same gladiator
+  [CascadingParameter] string? PreviousGladiator { get; set; }
+  bool _isCont => PreviousGladiator == Turn.GladiatorName;
+  bool HasMentions => Turn.Mentions.Count > 0;
+
+  string Domain => Turn.GladiatorName switch
+  {
+    "Maximus" => "Performance",
+    "Brutus"  => "DRY / YAGNI",
+    "Cassius" => "DDD / SRP",
+    "Valeria" => "Security",
+    "Arbiter" => "Moderator",
+    _ => string.Empty
+  };
+
+  string RenderText()
+  {
+    var text = System.Net.WebUtility.HtmlEncode(Turn.Text);
+
+    // Replace @Name mentions with coloured chips
+    text = System.Text.RegularExpressions.Regex.Replace(
+      text,
+      @"@([A-Za-z]+)",
+      m =>
+      {
+        var name = m.Groups[1].Value;
+        var colour = name.ToLower() switch
+        {
+          "maximus" => "var(--maximus)",
+          "brutus"  => "var(--brutus)",
+          "cassius" => "var(--cassius)",
+          "valeria" => "var(--valeria)",
+          "arbiter" => "var(--arbiter)",
+          _ => "var(--gold)"
+        };
+        return $"""<span class="mention" style="--m-col:{colour}">@{name}</span>""";
+      });
+
+    // Highlight [ISSUE: ...] tags
+    text = System.Text.RegularExpressions.Regex.Replace(
+      text,
+      @"\[ISSUE:\s*([^\|]+)\|\s*severity:\s*(\w+)\s*\]",
+      m => $"""<span class="inline-issue-tag">[ISSUE: {m.Groups[1].Value.Trim()} | {m.Groups[2].Value}]</span>""",
+      System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+    return text;
+  }
+}

@@ -1,0 +1,83 @@
+@namespace Colosseum.Web.Components.UI
+@using Colosseum.Core.Models
+
+@if (Verdict is null)
+{
+  <div class="verdict-hdr">
+    <span class="verdict-hdr-label">Arbiter's Verdict</span>
+    <div class="verdict-rule"></div>
+  </div>
+  <div class="verdict-text">
+    <strong>Debate in progress.</strong> The Arbiter will render a final independent verdict once all rounds conclude.
+  </div>
+}
+else if (Verdict.ParseFailed)
+{
+  <div class="verdict-hdr">
+    <span class="verdict-hdr-label">Arbiter's Verdict</span>
+    <div class="verdict-rule"></div>
+  </div>
+  <div class="error-banner">⚠ Verdict parsing failed — raw text below.</div>
+  <div class="verdict-text" style="white-space:pre-wrap">@Verdict.RawSummary</div>
+}
+else
+{
+  <div class="verdict-hdr">
+    <span class="verdict-hdr-label">Arbiter's Verdict</span>
+    <div class="verdict-rule"></div>
+  </div>
+
+  @if (Verdict.MergedIssues.Count > 0)
+  {
+    <div class="verdict-section-label">Merge Resolutions</div>
+    @foreach (var res in Verdict.MergedIssues)
+    {
+      <div class="verdict-merge-row">
+        <span class="verdict-merge-decision verdict-@res.Decision.ToString().ToLower()">@res.Decision</span>
+        <span class="verdict-merge-reason">@res.Reason</span>
+        @if (res.GladiatorAName is not null && res.GladiatorBName is not null)
+        {
+          <span class="verdict-merge-attr">@res.GladiatorAName &amp; @res.GladiatorBName</span>
+        }
+      </div>
+    }
+  }
+
+  @if (Verdict.RankedIssues.Count > 0)
+  {
+    <div class="verdict-section-label">Ranked Issues</div>
+    @foreach (var ri in Verdict.RankedIssues.OrderBy(r => r.Rank))
+    {
+      <div class="verdict-ranked-row">
+        <span class="verdict-rank">#@ri.Rank</span>
+        <span class="verdict-rationale">@ri.Rationale</span>
+      </div>
+    }
+  }
+
+  @if (Verdict.DismissedIssues.Count > 0)
+  {
+    <div class="verdict-section-label">Dismissed</div>
+    @foreach (var d in Verdict.DismissedIssues)
+    {
+      <div class="verdict-dismissed-row">@d.Reason</div>
+    }
+  }
+
+  @if (!string.IsNullOrWhiteSpace(Verdict.Summary))
+  {
+    <div class="verdict-section-label">Summary</div>
+    <div class="verdict-text">@Verdict.Summary</div>
+  }
+
+  <button class="btn-export" @onclick="ExportMarkdown">⬇ Export as Markdown</button>
+}
+
+@code {
+  [Parameter] public Verdict? Verdict { get; set; }
+
+  void ExportMarkdown()
+  {
+    // JS interop download — placeholder for now
+  }
+}

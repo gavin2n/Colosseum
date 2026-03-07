@@ -1,0 +1,17 @@
+## [2026-03-07] session-1
+**Decision**: Use claude-sonnet-4-6 for debate turns, claude-haiku-4-5-20251001 for summaries
+**Why**: Sonnet for quality debate reasoning; Haiku for cheap rolling summaries between rounds
+**Alternatives rejected**: All-Sonnet (too expensive for summaries), all-Haiku (quality too low for debate)
+---
+
+## [2026-03-07] session-1
+**Decision**: Start with Phase 1 spec implementation only (no Phase 2 features)
+**Why**: Get working v1 first; Phase 2 (Annals, Forge, Barracks, Tribune) is out of scope for v1 per spec
+**Alternatives rejected**: Building Phase 2 alongside (too much scope creep)
+---
+
+## [2026-03-07] session-1
+**Decision**: Use Anthropic.SDK NuGet package (official) for Claude API calls
+**Why**: Official SDK, well-maintained, supports streaming
+**Alternatives rejected**: Raw HttpClient (more work, less reliable)
+---

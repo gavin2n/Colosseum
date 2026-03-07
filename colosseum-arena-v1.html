@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Colosseum — The Arena</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;900&family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --stone:    #1a1612;
+    --obsidian: #0f0d0b;
+    --marble:   #e8e0d0;
+    --dust:     #c4b89a;
+    --blood:    #8b1a1a;
+    --fire:     #c94a0e;
+    --ember:    #e8730a;
+    --gold:     #c9a84c;
+    --gold-lt:  #e8c97a;
+    --iron:     #3a3530;
+    --iron-lt:  #5a5248;
+    --panel:    #141210;
+
+    /* Gladiator colours */
+    --maximus:  #c94a0e;
+    --brutus:   #6a8fc7;
+    --cassius:  #7a9e6a;
+    --valeria:  #9a6ab0;
+    --arbiter:  #c9a84c;
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--obsidian);
+    color: var(--marble);
+    font-family: 'Crimson Pro', Georgia, serif;
+    overflow: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
+    opacity: 0.04;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── LAYOUT ── */
+  .arena-layout {
+    position: relative; z-index: 1;
+    display: grid;
+    grid-template-rows: 48px 1fr;
+    grid-template-columns: 1fr 340px;
+    height: 100vh;
+    grid-template-areas:
+      "topbar  topbar"
+      "debate  sidebar";
+  }
+
+  /* ── TOPBAR ── */
+  .topbar {
+    grid-area: topbar;
+    display: flex;
+    align-items: center;
+    padding: 0 1.25rem;
+    gap: 1.5rem;
+    background: var(--panel);
+    border-bottom: 1px solid var(--iron);
+  }
+
+  .topbar-logo {
+    font-family: 'Cinzel', serif;
+    font-size: 1rem;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    background: linear-gradient(135deg, var(--gold-lt), var(--gold));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    flex-shrink: 0;
+  }
+
+  .topbar-divider { width: 1px; height: 20px; background: var(--iron); flex-shrink: 0; }
+
+  .topbar-pr {
+    flex: 1;
+    font-size: 0.82rem;
+    color: var(--dust);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .topbar-pr a { color: var(--gold); text-decoration: none; }
+  .topbar-pr a:hover { text-decoration: underline; }
+
+  .topbar-status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: 'Cinzel', serif;
+    font-size: 0.62rem;
+    letter-spacing: 0.25em;
+    color: var(--ember);
+    text-transform: uppercase;
+    flex-shrink: 0;
+  }
+  .status-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--ember);
+    animation: pulse 1.2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.7); }
+  }
+
+  .topbar-round {
+    font-family: 'Cinzel', serif;
+    font-size: 0.62rem;
+    letter-spacing: 0.2em;
+    color: var(--gold);
+    text-transform: uppercase;
+    flex-shrink: 0;
+  }
+
+  .btn-stop {
+    font-family: 'Cinzel', serif;
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    background: transparent;
+    border: 1px solid var(--iron-lt);
+    color: var(--dust);
+    padding: 0.35rem 0.85rem;
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s;
+    flex-shrink: 0;
+  }
+  .btn-stop:hover { border-color: var(--blood); color: var(--blood); }
+
+  /* ── DEBATE FEED ── */
+  .debate-panel {
+    grid-area: debate;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-right: 1px solid var(--iron);
+  }
+
+  .debate-feed {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    scroll-behavior: smooth;
+  }
+
+  /* custom scrollbar */
+  .debate-feed::-webkit-scrollbar { width: 4px; }
+  .debate-feed::-webkit-scrollbar-track { background: transparent; }
+  .debate-feed::-webkit-scrollbar-thumb { background: var(--iron); }
+
+  /* ── TURN CARD ── */
+  .turn {
+    display: grid;
+    grid-template-columns: 36px 1fr;
+    gap: 0 1rem;
+    padding: 1rem 0;
+    border-bottom: 1px solid rgba(58,53,48,0.4);
+    animation: turnIn 0.35s ease both;
+    position: relative;
+  }
+  .turn:last-child { border-bottom: none; }
+
+  @keyframes turnIn {
+    from { opacity: 0; transform: translateX(-12px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+
+  /* Left column: avatar + connector line */
+  .turn-avatar-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+
+  .avatar {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: 2px solid var(--g-color);
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Cinzel', serif;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--g-color);
+    flex-shrink: 0;
+  }
+
+  .avatar-line {
+    flex: 1;
+    width: 1px;
+    background: linear-gradient(to bottom, var(--g-color), transparent);
+    opacity: 0.2;
+    margin-top: 6px;
+  }
+
+  /* Right column: name + content */
+  .turn-body {}
+
+  .turn-header {
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+    margin-bottom: 0.4rem;
+  }
+
+  .turn-name {
+    font-family: 'Cinzel', serif;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--g-color);
+    letter-spacing: 0.05em;
+  }
+
+  .turn-domain {
+    font-size: 0.72rem;
+    color: var(--iron-lt);
+    font-style: italic;
+  }
+
+  .turn-ts {
+    margin-left: auto;
+    font-size: 0.68rem;
+    color: var(--iron-lt);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .turn-text {
+    font-size: 1rem;
+    line-height: 1.6;
+    color: var(--dust);
+  }
+
+  .turn-text strong { color: var(--marble); font-weight: 600; }
+
+  /* Issue tag inline */
+  .issue-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    background: rgba(0,0,0,0.35);
+    border: 1px solid var(--g-color);
+    border-left: 3px solid var(--g-color);
+    color: var(--g-color);
+    font-size: 0.72rem;
+    font-family: 'Cinzel', serif;
+    padding: 0.2rem 0.6rem 0.2rem 0.5rem;
+    margin-top: 0.5rem;
+    display: block;
+    width: fit-content;
+    letter-spacing: 0.03em;
+  }
+  .issue-tag .sev {
+    opacity: 0.7;
+    font-size: 0.65rem;
+  }
+
+  /* Rebuttal style */
+  .turn.rebuttal .turn-text {
+    border-left: 2px solid var(--g-color);
+    padding-left: 0.75rem;
+    opacity: 0.9;
+  }
+
+  /* Typing indicator */
+  .turn.typing .turn-text {
+    color: var(--iron-lt);
+    font-style: italic;
+  }
+  .typing-dots span {
+    display: inline-block;
+    animation: blink 1.2s infinite;
+  }
+  .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes blink { 0%,80%,100%{opacity:0} 40%{opacity:1} }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    grid-area: sidebar;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--panel);
+  }
+
+  .sidebar-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border-bottom: 1px solid var(--iron);
+  }
+
+  .tab {
+    font-family: 'Cinzel', serif;
+    font-size: 0.62rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    text-align: center;
+    padding: 0.75rem;
+    color: var(--iron-lt);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: color 0.15s, border-color 0.15s;
+    user-select: none;
+  }
+  .tab.active { color: var(--gold); border-bottom-color: var(--gold); }
+  .tab:hover:not(.active) { color: var(--dust); }
+
+  .sidebar-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem;
+  }
+  .sidebar-content::-webkit-scrollbar { width: 3px; }
+  .sidebar-content::-webkit-scrollbar-thumb { background: var(--iron); }
+
+  /* Issue list */
+  .issue-item {
+    padding: 0.85rem;
+    border: 1px solid var(--iron);
+    margin-bottom: 0.6rem;
+    position: relative;
+    transition: border-color 0.2s;
+    animation: issueIn 0.3s ease both;
+  }
+  @keyframes issueIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .issue-item:hover { border-color: var(--iron-lt); }
+
+  .issue-item::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--i-color, var(--iron-lt));
+  }
+
+  .issue-rank {
+    position: absolute;
+    top: 0.5rem; right: 0.6rem;
+    font-family: 'Cinzel', serif;
+    font-size: 0.65rem;
+    color: var(--gold);
+  }
+
+  .issue-title {
+    font-size: 0.9rem;
+    color: var(--marble);
+    font-weight: 600;
+    margin-bottom: 0.3rem;
+    padding-right: 1.5rem;
+    line-height: 1.3;
+  }
+
+  .issue-meta {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .badge {
+    font-family: 'Cinzel', serif;
+    font-size: 0.58rem;
+    letter-spacing: 0.1em;
+    padding: 0.15rem 0.5rem;
+    border: 1px solid currentColor;
+    text-transform: uppercase;
+  }
+
+  .badge-sev-high   { color: var(--fire); }
+  .badge-sev-med    { color: var(--ember); }
+  .badge-sev-low    { color: var(--dust); }
+
+  .badge-domain { color: var(--iron-lt); }
+
+  .vote-row {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 0.5rem;
+  }
+
+  .vote-for, .vote-against {
+    font-size: 0.72rem;
+    font-family: 'JetBrains Mono', monospace;
+    display: flex;
+    align-items: center;
+    gap: 0.2rem;
+  }
+  .vote-for    { color: var(--cassius); }
+  .vote-against{ color: var(--blood); }
+
+  .vote-bar {
+    flex: 1;
+    height: 3px;
+    background: var(--iron);
+    position: relative;
+    overflow: hidden;
+  }
+  .vote-bar-fill {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    background: linear-gradient(90deg, var(--cassius), var(--gold));
+    transition: width 0.4s ease;
+  }
+
+  .issue-item.dismissed {
+    opacity: 0.4;
+  }
+  .issue-item.dismissed .issue-title {
+    text-decoration: line-through;
+    color: var(--iron-lt);
+  }
+
+  /* ── VERDICT PANEL ── */
+  .verdict-section {
+    border-top: 1px solid var(--iron);
+    padding: 1rem;
+    flex-shrink: 0;
+  }
+
+  .verdict-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.85rem;
+  }
+
+  .verdict-label {
+    font-family: 'Cinzel', serif;
+    font-size: 0.65rem;
+    letter-spacing: 0.3em;
+    color: var(--gold);
+    text-transform: uppercase;
+  }
+
+  .verdict-rule { flex: 1; height: 1px; background: linear-gradient(90deg, var(--gold), transparent); }
+
+  .verdict-text {
+    font-size: 0.88rem;
+    color: var(--dust);
+    line-height: 1.6;
+    font-style: italic;
+  }
+
+  .verdict-text strong { color: var(--marble); font-style: normal; }
+
+  .btn-export {
+    display: block;
+    width: 100%;
+    margin-top: 0.85rem;
+    font-family: 'Cinzel', serif;
+    font-size: 0.62rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    background: transparent;
+    border: 1px solid var(--gold);
+    color: var(--gold);
+    padding: 0.6rem;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+    text-align: center;
+  }
+  .btn-export:hover { background: var(--gold); color: var(--obsidian); }
+
+  /* ── GLADIATOR STATUS BAR ── */
+  .gladiator-bar {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: 0 1rem;
+    height: 36px;
+    border-top: 1px solid var(--iron);
+    background: rgba(0,0,0,0.2);
+    flex-shrink: 0;
+  }
+
+  .g-status {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex: 1;
+    padding: 0 0.5rem;
+    border-right: 1px solid var(--iron);
+    justify-content: center;
+  }
+  .g-status:last-child { border-right: none; }
+
+  .g-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--g-color);
+    opacity: 0.35;
+    transition: opacity 0.3s, transform 0.3s;
+  }
+  .g-status.speaking .g-dot {
+    opacity: 1;
+    animation: pulse 0.8s ease-in-out infinite;
+  }
+
+  .g-name-sm {
+    font-family: 'Cinzel', serif;
+    font-size: 0.58rem;
+    letter-spacing: 0.1em;
+    color: var(--iron-lt);
+    transition: color 0.3s;
+  }
+  .g-status.speaking .g-name-sm { color: var(--g-color); }
+
+</style>
+</head>
+<body>
+
+<div class="arena-layout">
+
+  <!-- TOP BAR -->
+  <header class="topbar">
+    <span class="topbar-logo">COLOSSEUM</span>
+    <div class="topbar-divider"></div>
+    <div class="topbar-pr">
+      <a href="#">github.com/myorg/payments-service/pull/137</a>
+      &nbsp;·&nbsp; <span style="color:var(--iron-lt)">payments-service: add idempotency keys to payment processor</span>
+    </div>
+    <div class="topbar-status">
+      <div class="status-dot"></div>
+      Debate in progress
+    </div>
+    <div class="topbar-divider"></div>
+    <div class="topbar-round">Round 1 of 2</div>
+    <div class="topbar-divider"></div>
+    <button class="btn-stop">■ Stop</button>
+  </header>
+
+  <!-- DEBATE FEED -->
+  <section class="debate-panel">
+    <div class="debate-feed" id="feed">
+
+      <!-- Turn 1: Maximus -->
+      <div class="turn" style="--g-color: var(--maximus);">
+        <div class="turn-avatar-col">
+          <div class="avatar">M</div>
+          <div class="avatar-line"></div>
+        </div>
+        <div class="turn-body">
+          <div class="turn-header">
+            <span class="turn-name">Maximus</span>
+            <span class="turn-domain">Performance</span>
+            <span class="turn-ts">0:04</span>
+          </div>
+          <div class="turn-text">
+            Line 47: <strong>PaymentRepository.GetPendingAsync()</strong> is called inside a loop with no batch strategy — that's N+1 queries dressed up as async work. The idempotency key lookup also has no cache; every retry hammers the DB.
+          </div>
+          <div class="issue-tag">⚠ N+1 query in retry loop &nbsp;<span class="sev">· HIGH</span></div>
+        </div>
+      </div>
+
+      <!-- Turn 2: Brutus -->
+      <div class="turn" style="--g-color: var(--brutus);">
+        <div class="turn-avatar-col">
+          <div class="avatar">B</div>
+          <div class="avatar-line"></div>
+        </div>
+        <div class="turn-body">
+          <div class="turn-header">
+            <span class="turn-name">Brutus</span>
+            <span class="turn-domain">DRY / YAGNI</span>
+            <span class="turn-ts">0:11</span>
+          </div>
+          <div class="turn-text">
+            Maximus is right about the query, but the deeper problem is that idempotency logic is duplicated across <strong>ProcessPaymentCommand</strong> and <strong>RetryPaymentCommand</strong> — two handlers doing identical key validation. This will rot.
+          </div>
+          <div class="issue-tag">⚠ Duplicate idempotency logic in two handlers &nbsp;<span class="sev">· HIGH</span></div>
+        </div>
+      </div>
+
+      <!-- Turn 3: Cassius -->
+      <div class="turn" style="--g-color: var(--cassius);">
+        <div class="turn-avatar-col">
+          <div class="avatar">C</div>
+          <div class="avatar-line"></div>
+        </div>
+        <div class="turn-body">
+          <div class="turn-header">
+            <span class="turn-name">Cassius</span>
+            <span class="turn-domain">DDD / SRP</span>
+            <span class="turn-ts">0:19</span>
+          </div>
+          <div class="turn-text">
+            Brutus has found the symptom, not the cause. Idempotency is a <em>domain concern</em>, not an application concern — it belongs on a dedicated <strong>IdempotencyService</strong>, not scattered across command handlers. The boundary is wrong.
+          </div>
+          <div class="issue-tag">⚠ Idempotency should be a domain service &nbsp;<span class="sev">· MED</span></div>
+        </div>
+      </div>
+
+      <!-- Turn 4: Valeria -->
+      <div class="turn" style="--g-color: var(--valeria);">
+        <div class="turn-avatar-col">
+          <div class="avatar">V</div>
+          <div class="avatar-line"></div>
+        </div>
+        <div class="turn-body">
+          <div class="turn-header">
+            <span class="turn-name">Valeria</span>
+            <span class="turn-domain">Security</span>
+            <span class="turn-ts">0:28</span>
+          </div>
+          <div class="turn-text">
+            Line 83: the idempotency key is taken directly from <strong>request.Headers["X-Idempotency-Key"]</strong> with no length or format validation — that's a trivial DoS vector. Keys should be validated to UUID format and capped at 64 chars before touching any persistence.
+          </div>
+          <div class="issue-tag">⚠ Unvalidated idempotency key from headers &nbsp;<span class="sev">· HIGH</span></div>
+        </div>
+      </div>
+
+      <!-- Turn 5: Maximus rebuttal -->
+      <div class="turn rebuttal" style="--g-color: var(--maximus);">
+        <div class="turn-avatar-col">
+          <div class="avatar">M</div>
+          <div class="avatar-line"></div>
+        </div>
+        <div class="turn-body">
+          <div class="turn-header">
+            <span class="turn-name">Maximus</span>
+            <span class="turn-domain">Performance</span>
+            <span class="turn-ts">0:35</span>
+          </div>
+          <div class="turn-text">
+            Cassius — I agree the service boundary is wrong, but don't let architectural elegance distract from the N+1 query. A beautiful service layer backed by a hot query loop is still a fire at scale. Fix the query <em>and</em> move the service.
+          </div>
+        </div>
+      </div>
+
+      <!-- Turn 6: Brutus dismisses Cassius's issue -->
+      <div class="turn rebuttal" style="--g-color: var(--brutus);">
+        <div class="turn-avatar-col">
+          <div class="avatar">B</div>
+          <div class="avatar-line"></div>
+        </div>
+        <div class="turn-body">
+          <div class="turn-header">
+            <span class="turn-name">Brutus</span>
+            <span class="turn-domain">DRY / YAGNI</span>
+            <span class="turn-ts">0:43</span>
+          </div>
+          <div class="turn-text">
+            I disagree with Cassius on the IdempotencyService — that's over-engineering for a two-handler system. Extract a shared private method or a simple helper; introducing a full domain service here violates YAGNI.
+          </div>
+        </div>
+      </div>
+
+      <!-- Typing indicator — Valeria is next -->
+      <div class="turn typing" style="--g-color: var(--valeria);">
+        <div class="turn-avatar-col">
+          <div class="avatar">V</div>
+        </div>
+        <div class="turn-body">
+          <div class="turn-header">
+            <span class="turn-name">Valeria</span>
+            <span class="turn-domain">Security</span>
+          </div>
+          <div class="turn-text">
+            <span class="typing-dots">
+              <span>●</span><span>●</span><span>●</span>
+            </span>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /debate-feed -->
+
+    <!-- Gladiator status bar -->
+    <div class="gladiator-bar">
+      <div class="g-status" style="--g-color: var(--maximus);">
+        <div class="g-dot"></div>
+        <span class="g-name-sm">Maximus</span>
+      </div>
+      <div class="g-status" style="--g-color: var(--brutus);">
+        <div class="g-dot"></div>
+        <span class="g-name-sm">Brutus</span>
+      </div>
+      <div class="g-status" style="--g-color: var(--cassius);">
+        <div class="g-dot"></div>
+        <span class="g-name-sm">Cassius</span>
+      </div>
+      <div class="g-status speaking" style="--g-color: var(--valeria);">
+        <div class="g-dot"></div>
+        <span class="g-name-sm">Valeria</span>
+      </div>
+    </div>
+
+  </section><!-- /debate-panel -->
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+
+    <div class="sidebar-tabs">
+      <div class="tab active" onclick="switchTab(this,'issues')">Issues (4)</div>
+      <div class="tab" onclick="switchTab(this,'squad')">Squad</div>
+    </div>
+
+    <div class="sidebar-content" id="tab-issues">
+
+      <!-- Issue 1 -->
+      <div class="issue-item" style="--i-color: var(--maximus);">
+        <span class="issue-rank">#1</span>
+        <div class="issue-title">N+1 query in retry loop</div>
+        <div class="issue-meta">
+          <span class="badge badge-sev-high">High</span>
+          <span class="badge badge-domain">Performance</span>
+        </div>
+        <div class="vote-row">
+          <span class="vote-for">▲ 2</span>
+          <div class="vote-bar"><div class="vote-bar-fill" style="width:100%"></div></div>
+          <span class="vote-against">▼ 0</span>
+        </div>
+      </div>
+
+      <!-- Issue 2 -->
+      <div class="issue-item" style="--i-color: var(--valeria);">
+        <span class="issue-rank">#2</span>
+        <div class="issue-title">Unvalidated idempotency key from headers</div>
+        <div class="issue-meta">
+          <span class="badge badge-sev-high">High</span>
+          <span class="badge badge-domain">Security</span>
+        </div>
+        <div class="vote-row">
+          <span class="vote-for">▲ 1</span>
+          <div class="vote-bar"><div class="vote-bar-fill" style="width:100%"></div></div>
+          <span class="vote-against">▼ 0</span>
+        </div>
+      </div>
+
+      <!-- Issue 3 -->
+      <div class="issue-item" style="--i-color: var(--brutus);">
+        <span class="issue-rank">#3</span>
+        <div class="issue-title">Duplicate idempotency logic in two handlers</div>
+        <div class="issue-meta">
+          <span class="badge badge-sev-high">High</span>
+          <span class="badge badge-domain">DRY / YAGNI</span>
+        </div>
+        <div class="vote-row">
+          <span class="vote-for">▲ 1</span>
+          <div class="vote-bar"><div class="vote-bar-fill" style="width:50%"></div></div>
+          <span class="vote-against">▼ 0</span>
+        </div>
+      </div>
+
+      <!-- Issue 4 — contested/dismissed -->
+      <div class="issue-item dismissed" style="--i-color: var(--cassius);">
+        <span class="issue-rank" style="color:var(--iron-lt)">✕</span>
+        <div class="issue-title">Idempotency should be a domain service</div>
+        <div class="issue-meta">
+          <span class="badge badge-sev-med">Medium</span>
+          <span class="badge badge-domain">DDD / SRP</span>
+        </div>
+        <div class="vote-row">
+          <span class="vote-for">▲ 1</span>
+          <div class="vote-bar"><div class="vote-bar-fill" style="width:33%"></div></div>
+          <span class="vote-against">▼ 1</span>
+        </div>
+      </div>
+
+    </div><!-- /tab-issues -->
+
+    <!-- Verdict at bottom of sidebar -->
+    <div class="verdict-section">
+      <div class="verdict-header">
+        <span class="verdict-label">Arbiter's Verdict</span>
+        <div class="verdict-rule"></div>
+      </div>
+      <div class="verdict-text">
+        <strong>Debate in progress.</strong> The Arbiter will render a final verdict once all rounds are complete. Three confirmed issues so far; one contested.
+      </div>
+    </div>
+
+  </aside>
+
+</div><!-- /arena-layout -->
+
+<script>
+  function switchTab(el, tab) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+  }
+
+  // Simulate Valeria's turn arriving
+  setTimeout(() => {
+    const feed = document.getElementById('feed');
+    const typing = feed.querySelector('.turn.typing');
+
+    typing.classList.remove('typing');
+    typing.querySelector('.turn-text').innerHTML = `
+      None of you have noticed line 102: the full payment amount is logged at <strong>INFO</strong> level
+      — including the card BIN. That's a PCI compliance violation in a log aggregator.
+    `;
+    const tag = document.createElement('div');
+    tag.className = 'issue-tag';
+    tag.style.setProperty('--g-color', 'var(--valeria)');
+    tag.innerHTML = '⚠ Payment BIN logged at INFO level &nbsp;<span class="sev">· HIGH</span>';
+    typing.querySelector('.turn-body').appendChild(tag);
+
+    // Update speaking status
+    document.querySelector('.g-status.speaking').classList.remove('speaking');
+
+    feed.scrollTop = feed.scrollHeight;
+  }, 2800);
+</script>
+</body>
+</html>

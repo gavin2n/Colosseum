@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Colosseum — Enter the Arena</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;900&family=Crimson+Pro:ital,wght@0,300;0,400;1,300;1,400&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --stone:    #1a1612;
+    --obsidian: #0f0d0b;
+    --marble:   #e8e0d0;
+    --dust:     #c4b89a;
+    --blood:    #8b1a1a;
+    --fire:     #c94a0e;
+    --ember:    #e8730a;
+    --gold:     #c9a84c;
+    --gold-lt:  #e8c97a;
+    --iron:     #3a3530;
+    --iron-lt:  #5a5248;
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--obsidian);
+    color: var(--marble);
+    font-family: 'Crimson Pro', Georgia, serif;
+    overflow-x: hidden;
+  }
+
+  /* Grungy stone texture overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
+    opacity: 0.04;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Vignette */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse at 50% 0%, transparent 40%, rgba(0,0,0,0.7) 100%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .page {
+    position: relative;
+    z-index: 1;
+    min-height: 100vh;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+  }
+
+  /* ── HEADER ── */
+  header {
+    text-align: center;
+    padding: 4rem 2rem 2rem;
+    position: relative;
+  }
+
+  .logo-lockup {
+    display: inline-block;
+    position: relative;
+  }
+
+  .logo-eyebrow {
+    font-family: 'Cinzel', serif;
+    font-size: 0.7rem;
+    letter-spacing: 0.45em;
+    color: var(--gold);
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+    opacity: 0.8;
+  }
+
+  .logo-title {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(3.5rem, 10vw, 7rem);
+    font-weight: 900;
+    line-height: 0.9;
+    letter-spacing: 0.06em;
+    background: linear-gradient(160deg, var(--gold-lt) 0%, var(--gold) 40%, var(--fire) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0 0 40px rgba(201,168,76,0.25));
+  }
+
+  .logo-sub {
+    font-family: 'Crimson Pro', serif;
+    font-style: italic;
+    font-size: 1.15rem;
+    color: var(--dust);
+    margin-top: 0.75rem;
+    letter-spacing: 0.02em;
+  }
+
+  /* Decorative rule */
+  .rule {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin: 2rem auto 0;
+    max-width: 400px;
+  }
+  .rule-line {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  }
+  .rule-diamond {
+    width: 6px; height: 6px;
+    background: var(--gold);
+    transform: rotate(45deg);
+    flex-shrink: 0;
+  }
+
+  /* ── MAIN ── */
+  main {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 3rem 1.5rem 2rem;
+    gap: 3rem;
+  }
+
+  /* PR Input block */
+  .input-arena {
+    width: 100%;
+    max-width: 680px;
+  }
+
+  .input-label {
+    font-family: 'Cinzel', serif;
+    font-size: 0.7rem;
+    letter-spacing: 0.35em;
+    color: var(--gold);
+    text-transform: uppercase;
+    margin-bottom: 0.75rem;
+    display: block;
+  }
+
+  .input-row {
+    display: flex;
+    gap: 0;
+    border: 1px solid var(--iron-lt);
+    background: rgba(26,22,18,0.85);
+    transition: border-color 0.2s;
+  }
+  .input-row:focus-within {
+    border-color: var(--gold);
+    box-shadow: 0 0 0 1px var(--gold), 0 0 30px rgba(201,168,76,0.1);
+  }
+
+  .pr-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--marble);
+    font-family: 'Crimson Pro', serif;
+    font-size: 1.1rem;
+    padding: 1rem 1.25rem;
+    min-width: 0;
+  }
+  .pr-input::placeholder { color: var(--iron-lt); }
+
+  .btn-enter {
+    font-family: 'Cinzel', serif;
+    font-size: 0.72rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    background: linear-gradient(135deg, var(--blood), var(--fire));
+    color: var(--marble);
+    border: none;
+    padding: 0 1.75rem;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: filter 0.2s, transform 0.1s;
+    position: relative;
+    overflow: hidden;
+  }
+  .btn-enter::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, var(--fire), var(--ember));
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .btn-enter:hover::before { opacity: 1; }
+  .btn-enter:hover { filter: brightness(1.1); }
+  .btn-enter:active { transform: scale(0.98); }
+  .btn-enter span { position: relative; z-index: 1; }
+
+  .input-hint {
+    font-size: 0.85rem;
+    color: var(--iron-lt);
+    margin-top: 0.6rem;
+    font-style: italic;
+  }
+
+  /* ── GLADIATOR SQUAD BUILDER ── */
+  .squad-section {
+    width: 100%;
+    max-width: 680px;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  .section-header .rule-line { background: linear-gradient(90deg, var(--iron-lt), transparent); }
+
+  .section-title {
+    font-family: 'Cinzel', serif;
+    font-size: 0.68rem;
+    letter-spacing: 0.4em;
+    color: var(--gold);
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .gladiators-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+
+  .gladiator-card {
+    border: 1px solid var(--iron);
+    background: rgba(26,22,18,0.6);
+    padding: 1rem 1.25rem;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    position: relative;
+    overflow: hidden;
+    user-select: none;
+  }
+
+  .gladiator-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--card-accent, var(--iron));
+    transition: background 0.2s;
+  }
+
+  .gladiator-card.active {
+    border-color: var(--card-accent, var(--gold));
+    background: rgba(26,22,18,0.9);
+  }
+  .gladiator-card.active::before { background: var(--card-accent, var(--gold)); }
+  .gladiator-card.active::after {
+    content: '✓';
+    position: absolute;
+    top: 0.6rem; right: 0.75rem;
+    font-size: 0.7rem;
+    color: var(--card-accent, var(--gold));
+    font-family: 'Cinzel', serif;
+  }
+
+  /* Per-gladiator accent colours */
+  .card-maximus  { --card-accent: #c94a0e; }
+  .card-brutus   { --card-accent: #6a8fc7; }
+  .card-cassius  { --card-accent: #7a9e6a; }
+  .card-valeria  { --card-accent: #9a6ab0; }
+
+  .card-name {
+    font-family: 'Cinzel', serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--marble);
+    margin-bottom: 0.2rem;
+  }
+
+  .card-domain {
+    font-size: 0.78rem;
+    color: var(--card-accent, var(--dust));
+    font-style: italic;
+    margin-bottom: 0.5rem;
+  }
+
+  .card-desc {
+    font-size: 0.82rem;
+    color: var(--iron-lt);
+    line-height: 1.4;
+  }
+
+  /* Rounds control */
+  .rounds-row {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    margin-top: 1.25rem;
+    padding: 0.9rem 1.25rem;
+    border: 1px solid var(--iron);
+    background: rgba(26,22,18,0.4);
+  }
+
+  .rounds-label {
+    font-family: 'Cinzel', serif;
+    font-size: 0.68rem;
+    letter-spacing: 0.25em;
+    color: var(--gold);
+    text-transform: uppercase;
+    flex-shrink: 0;
+  }
+
+  .rounds-slider {
+    flex: 1;
+    -webkit-appearance: none;
+    height: 2px;
+    background: linear-gradient(90deg, var(--gold) 50%, var(--iron) 50%);
+    outline: none;
+    cursor: pointer;
+  }
+  .rounds-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px; height: 14px;
+    background: var(--gold);
+    border: 2px solid var(--obsidian);
+    transform: rotate(45deg);
+    cursor: pointer;
+  }
+
+  .rounds-value {
+    font-family: 'Cinzel', serif;
+    font-size: 1.2rem;
+    color: var(--gold);
+    min-width: 1.5rem;
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  .rounds-desc {
+    font-size: 0.8rem;
+    color: var(--iron-lt);
+    font-style: italic;
+    flex-shrink: 0;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    text-align: center;
+    padding: 1.5rem;
+    font-size: 0.78rem;
+    color: var(--iron-lt);
+    font-style: italic;
+    border-top: 1px solid var(--iron);
+  }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  header         { animation: fadeUp 0.6s ease both; }
+  .input-arena   { animation: fadeUp 0.6s 0.15s ease both; }
+  .squad-section { animation: fadeUp 0.6s 0.3s ease both; }
+
+  /* Ember particle effect on title */
+  .ember {
+    position: absolute;
+    width: 3px; height: 3px;
+    border-radius: 50%;
+    background: var(--ember);
+    pointer-events: none;
+    animation: emberFloat linear infinite;
+    opacity: 0;
+  }
+  @keyframes emberFloat {
+    0%   { opacity: 0; transform: translateY(0) translateX(0); }
+    20%  { opacity: 0.8; }
+    80%  { opacity: 0.3; }
+    100% { opacity: 0; transform: translateY(-80px) translateX(var(--drift)); }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <div class="logo-lockup">
+      <div class="logo-eyebrow">Agentic Code Review</div>
+      <div class="logo-title">COLOSSEUM</div>
+      <div class="logo-sub">Where your code faces its critics</div>
+    </div>
+    <div class="rule">
+      <div class="rule-line"></div>
+      <div class="rule-diamond"></div>
+      <div class="rule-line"></div>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- PR URL Input -->
+    <div class="input-arena">
+      <label class="input-label" for="pr-url">GitHub Pull Request</label>
+      <div class="input-row">
+        <input
+          id="pr-url"
+          class="pr-input"
+          type="text"
+          placeholder="https://github.com/owner/repo/pull/42"
+          value="https://github.com/myorg/payments-service/pull/137"
+        />
+        <button class="btn-enter"><span>Enter the Arena →</span></button>
+      </div>
+      <div class="input-hint">Public PRs require no token. Private repos: add token in settings.</div>
+    </div>
+
+    <!-- Squad Builder -->
+    <div class="squad-section">
+
+      <div class="section-header">
+        <div class="rule-line"></div>
+        <div class="section-title">Choose Your Gladiators</div>
+        <div class="rule-line" style="background: linear-gradient(90deg, transparent, var(--iron-lt));"></div>
+      </div>
+
+      <div class="gladiators-grid">
+
+        <div class="gladiator-card card-maximus active" onclick="toggleCard(this)">
+          <div class="card-name">Maximus</div>
+          <div class="card-domain">Performance</div>
+          <div class="card-desc">Hunts allocations, O(n²) sins, and premature abstractions. Aggressive. Never satisfied.</div>
+        </div>
+
+        <div class="gladiator-card card-brutus active" onclick="toggleCard(this)">
+          <div class="card-name">Brutus</div>
+          <div class="card-domain">DRY / YAGNI / Clean Code</div>
+          <div class="card-desc">Quotes Fowler. Counts duplicated lines. Considers copy-paste a personal insult.</div>
+        </div>
+
+        <div class="gladiator-card card-cassius active" onclick="toggleCard(this)">
+          <div class="card-name">Cassius</div>
+          <div class="card-domain">DDD / Abstractions / SRP</div>
+          <div class="card-desc">Guards domain boundaries. Despises god-classes. Draws invisible lines no one else sees.</div>
+        </div>
+
+        <div class="gladiator-card card-valeria active" onclick="toggleCard(this)">
+          <div class="card-name">Valeria</div>
+          <div class="card-domain">Security</div>
+          <div class="card-desc">Assumes breach. Flags every unvalidated input. Treats trust as a vulnerability.</div>
+        </div>
+
+      </div>
+
+      <!-- Rounds slider -->
+      <div class="rounds-row">
+        <span class="rounds-label">Rounds</span>
+        <input type="range" class="rounds-slider" min="1" max="3" value="2"
+          oninput="document.getElementById('rv').textContent = this.value; updateSlider(this)">
+        <span class="rounds-value" id="rv">2</span>
+        <span class="rounds-desc">— each gladiator speaks twice</span>
+      </div>
+
+    </div>
+
+  </main>
+
+  <footer>
+    Minimum 2 gladiators required &nbsp;·&nbsp; Each turn capped at ~3 sentences &nbsp;·&nbsp; Verdict rendered by the independent Arbiter
+  </footer>
+
+</div>
+
+<script>
+  function toggleCard(card) {
+    const active = document.querySelectorAll('.gladiator-card.active');
+    if (card.classList.contains('active') && active.length <= 2) {
+      // shake to indicate minimum
+      card.style.animation = 'shake 0.3s';
+      setTimeout(() => card.style.animation = '', 300);
+      return;
+    }
+    card.classList.toggle('active');
+  }
+
+  function updateSlider(input) {
+    const pct = ((input.value - input.min) / (input.max - input.min)) * 100;
+    input.style.background = `linear-gradient(90deg, var(--gold) ${pct}%, var(--iron) ${pct}%)`;
+    const desc = document.querySelector('.rounds-desc');
+    const labels = ['— gladiators open; one round only', '— each gladiator speaks twice', '— full three-round debate'];
+    desc.textContent = labels[input.value - 1];
+  }
+
+  // Ember particles
+  function spawnEmber() {
+    const title = document.querySelector('.logo-title');
+    const rect = title.getBoundingClientRect();
+    const e = document.createElement('div');
+    e.className = 'ember';
+    e.style.left = (rect.left + Math.random() * rect.width) + 'px';
+    e.style.top  = (rect.top + rect.height * 0.5) + 'px';
+    e.style.setProperty('--drift', (Math.random() * 40 - 20) + 'px');
+    e.style.animationDuration = (1.5 + Math.random() * 2) + 's';
+    e.style.animationDelay = '0s';
+    document.body.appendChild(e);
+    setTimeout(() => e.remove(), 3500);
+  }
+  setInterval(spawnEmber, 400);
+</script>
+</body>
+</html>

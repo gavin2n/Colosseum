@@ -1,0 +1,17 @@
+@namespace Colosseum.Web.Components.UI
+
+<div class="glad-strip">
+  @foreach (var g in Squad)
+  {
+    var speaking = TypingGladiator == g.Name;
+    <div class="glad-chip @(speaking ? "speaking" : "")" style="--g-col:@g.AccentColour">
+      <div class="glad-dot"></div>
+      <span class="glad-label">@g.Name</span>
+    </div>
+  }
+</div>
+
+@code {
+  [Parameter, EditorRequired] public IReadOnlyList<GladiatorVm> Squad { get; set; } = [];
+  [Parameter] public string? TypingGladiator { get; set; }
+}

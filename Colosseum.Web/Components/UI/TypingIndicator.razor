@@ -1,0 +1,31 @@
+@namespace Colosseum.Web.Components.UI
+@using Colosseum.Core.Models
+
+<div class="msg typing" style="--g-col:@_colour">
+  <div class="msg-avatar">@_initial</div>
+  <div class="msg-body">
+    <div class="msg-meta">
+      <span class="msg-name">@Gladiator</span>
+    </div>
+    <div class="msg-text">
+      <span class="typing-dots">
+        <span>●</span><span>●</span><span>●</span>
+      </span>
+    </div>
+  </div>
+</div>
+
+@code {
+  [Parameter, EditorRequired] public string? Gladiator { get; set; }
+
+  string _initial => Gladiator?.Length > 0 ? Gladiator[0].ToString() : "?";
+  string _colour => Gladiator?.ToLower() switch
+  {
+    "maximus" => "var(--maximus)",
+    "brutus"  => "var(--brutus)",
+    "cassius" => "var(--cassius)",
+    "valeria" => "var(--valeria)",
+    "arbiter" => "var(--arbiter)",
+    _ => "var(--gold)"
+  };
+}

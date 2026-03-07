@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dotnet *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git status*)",
+      "Bash(git log *)",
+      "Bash(git diff *)",
+      "Bash(git push *)",
+      "Bash(git init*)",
+      "Bash(git config *)",
+      "Bash(git remote *)",
+      "Bash(git branch *)",
+      "Bash(gh repo create *)",
+      "Bash(gh repo view *)",
+      "Bash(gh repo list *)",
+      "Bash(gh auth status*)",
+      "Bash(ls *)",
+      "Bash(mkdir *)",
+      "mcp__claude_ai_Context7__resolve-library-id",
+      "mcp__claude_ai_Context7__query-docs"
+    ],
+    "deny": [
+      "Bash(rm *)",
+      "Bash(git reset --hard*)",
+      "Bash(git push --force*)",
+      "Bash(git push -f *)"
+    ]
+  }
+}

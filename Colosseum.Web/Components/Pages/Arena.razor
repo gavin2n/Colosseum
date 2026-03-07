@@ -1,0 +1,253 @@
+@page "/arena"
+@rendermode InteractiveServer
+@inject NavigationManager Nav
+@implements IAsyncDisposable
+
+<PageTitle>Colosseum — The Arena</PageTitle>
+
+<div class="shell">
+
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <a class="topbar-logo" href="/">COLOSSEUM</a>
+    <div class="topbar-sep"></div>
+    <div class="topbar-pr">
+      @if (_prTitle is not null)
+      {
+        <a href="@PrUrl" target="_blank">@_prRef</a>
+        <span style="color:var(--iron-lt)"> · @_prTitle</span>
+      }
+      else
+      {
+        <span style="color:var(--iron-lt)">@_statusText</span>
+      }
+    </div>
+    <div class="topbar-right">
+      @if (_debating)
+      {
+        <div class="status-pill"><div class="status-dot"></div>Live</div>
+        <div class="topbar-sep"></div>
+        <div class="round-badge">Round @_currentRound / @_maxRounds</div>
+        <button class="btn-stop" @onclick="Stop">&#9632; Stop</button>
+      }
+      else if (_done)
+      {
+        <div class="status-pill" style="color:var(--cassius)">
+          <div class="status-dot" style="background:var(--cassius);animation:none"></div>Done
+        </div>
+      }
+    </div>
+  </header>
+
+  <!-- CHAT -->
+  <section class="chat-panel" id="chatPanel">
+    <GladiatorStrip Squad="_squad" TypingGladiator="_typingGladiator" />
+
+    <div class="msg-feed" id="feed">
+      @if (_errorText is not null)
+      {
+        <div class="error-banner">&#9888; @_errorText</div>
+      }
+      @if (_turns.Count == 0 && !_debating && _errorText is null)
+      {
+        <div class="feed-empty">@_statusText</div>
+      }
+
+      @{ int lastRound = 0; }
+      @foreach (var turn in _turns)
+      {
+        @if (turn.Round != lastRound)
+        {
+          lastRound = turn.Round;
+          <div class="feed-sep">
+            <div class="feed-sep-line"></div>
+            <span class="feed-sep-label">Round @turn.Round &mdash; @(turn.Round == 1 ? "Opening Arguments" : "Rebuttals")</span>
+            <div class="feed-sep-line"></div>
+          </div>
+        }
+        <DebateTurnMessage Turn="turn" AllIssues="_issues" />
+      }
+
+      @if (_typingGladiator is not null)
+      {
+        <TypingIndicator Gladiator="_typingGladiator" />
+      }
+    </div>
+  </section>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-tabs">
+      <div class="stab @(_activeTab == 0 ? "active" : "")" @onclick='() => _activeTab = 0'>
+        Issues (@_issues.Count)
+      </div>
+      <div class="stab @(_activeTab == 1 ? "active" : "")" @onclick='() => _activeTab = 1'>Arbiter</div>
+    </div>
+
+    @if (_activeTab == 0)
+    {
+      <div class="stab-panel active">
+        <div class="stab-scroll">
+          @foreach (var issue in _issues)
+          {
+            <IssueCard Issue="issue" AllIssues="_issues" />
+          }
+        </div>
+      </div>
+    }
+    else
+    {
+      <div class="stab-panel active">
+        <div style="flex:1;overflow-y:auto;padding:.85rem">
+          <VerdictPanel Verdict="_verdict" />
+        </div>
+      </div>
+    }
+  </aside>
+
+  <!-- MOBILE TAB BAR -->
+  <nav class="mob-tabbar">
+    <div class="mob-tab @(_mobTab == "chat" ? "active" : "")" @onclick='() => _mobTab = "chat"'>
+      <span class="mob-tab-icon">&#9876;</span>Debate
+    </div>
+    <div class="mob-tab @(_mobTab == "issues" ? "active" : "")" @onclick='() => _mobTab = "issues"'>
+      <span class="mob-tab-icon">&#9878;</span>Issues
+      @if (_issues.Count > 0) { <span class="mob-tab-badge">@_issues.Count</span> }
+    </div>
+  </nav>
+
+</div>
+
+@code {
+  [SupplyParameterFromQuery] public string? Pr { get; set; }
+  [SupplyParameterFromQuery] public string? Gladiators { get; set; }
+  [SupplyParameterFromQuery] public int Rounds { get; set; } = 2;
+
+  string PrUrl => Pr ?? string.Empty;
+
+  HubConnection? _hub;
+  List<GladiatorVm> _squad = [];
+  List<Colosseum.Core.Models.DebateTurn> _turns = [];
+  List<Colosseum.Core.Models.Issue> _issues = [];
+  Colosseum.Core.Models.Verdict? _verdict;
+
+  string? _typingGladiator;
+  bool _debating;
+  bool _done;
+  int _currentRound = 1;
+  int _maxRounds = 2;
+  int _activeTab;
+  string _mobTab = "chat";
+  string _statusText = "Connecting...";
+  string? _errorText;
+  string? _prTitle;
+  string? _prRef;
+
+  protected override async Task OnInitializedAsync()
+  {
+    if (string.IsNullOrWhiteSpace(Pr))
+    {
+      Nav.NavigateTo("/");
+      return;
+    }
+
+    _maxRounds = Rounds;
+
+    _hub = new HubConnectionBuilder()
+        .WithUrl(Nav.ToAbsoluteUri("/hubs/arena"))
+        .WithAutomaticReconnect()
+        .Build();
+
+    _hub.On<string>("StatusUpdate", msg =>
+    {
+      _statusText = msg;
+      return InvokeAsync(StateHasChanged);
+    });
+
+    _hub.On<string>("Error", msg =>
+    {
+      _errorText = msg;
+      _debating = false;
+      return InvokeAsync(StateHasChanged);
+    });
+
+    _hub.On<string, string, int, string?>("SessionStarted",
+      (owner, repo, number, title) =>
+      {
+        _prRef = $"{owner}/{repo}/pull/{number}";
+        _prTitle = title;
+        _debating = true;
+        return InvokeAsync(StateHasChanged);
+      });
+
+    _hub.On<string, string>("GladiatorTyping", (name, _) =>
+    {
+      _typingGladiator = name;
+      _currentRound = _turns.Count > 0 ? _turns.Max(t => t.Round) : 1;
+      return InvokeAsync(StateHasChanged);
+    });
+
+    _hub.On<Colosseum.Core.Models.DebateTurn>("TurnCompleted", turn =>
+    {
+      _typingGladiator = null;
+      _turns.Add(turn);
+      _currentRound = turn.Round;
+      return InvokeAsync(StateHasChanged);
+    });
+
+    _hub.On<Colosseum.Core.Models.Issue>("IssueRaised", issue =>
+    {
+      _issues.Add(issue);
+      return InvokeAsync(StateHasChanged);
+    });
+
+    _hub.On<Colosseum.Core.Models.Issue>("IssueUpdated", updated =>
+    {
+      var idx = _issues.FindIndex(i => i.Id == updated.Id);
+      if (idx >= 0) _issues[idx] = updated;
+      return InvokeAsync(StateHasChanged);
+    });
+
+    _hub.On("DebateComplete", () =>
+    {
+      _typingGladiator = null;
+      _statusText = "Rendering verdict...";
+      return InvokeAsync(StateHasChanged);
+    });
+
+    _hub.On<Colosseum.Core.Models.Verdict>("VerdictReady", verdict =>
+    {
+      _verdict = verdict;
+      _debating = false;
+      _done = true;
+      _activeTab = 1;
+      return InvokeAsync(StateHasChanged);
+    });
+
+    await _hub.StartAsync();
+
+    var gladiatorNames = (Gladiators ?? "Maximus,Brutus,Cassius,Valeria")
+        .Split(',', StringSplitOptions.RemoveEmptyEntries)
+        .ToList();
+
+    _squad = Colosseum.Core.Models.Gladiator.DefaultSquad
+        .Where(g => gladiatorNames.Contains(g.Name, StringComparer.OrdinalIgnoreCase))
+        .Select(g => new GladiatorVm(g.Name, g.Domain, g.AccentColour))
+        .ToList();
+
+    _statusText = "Fetching PR...";
+    await _hub.SendAsync("StartReview", PrUrl, gladiatorNames, Rounds);
+  }
+
+  async Task Stop()
+  {
+    if (_hub is not null)
+      await _hub.SendAsync("StopReview");
+  }
+
+  public async ValueTask DisposeAsync()
+  {
+    if (_hub is not null)
+      await _hub.DisposeAsync();
+  }
+}

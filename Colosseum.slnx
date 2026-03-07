@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="Colosseum.Core/Colosseum.Core.csproj" />
+  <Project Path="Colosseum.Tests/Colosseum.Tests.csproj" />
+  <Project Path="Colosseum.Web/Colosseum.Web.csproj" />
+</Solution>

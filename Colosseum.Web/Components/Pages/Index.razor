@@ -1,0 +1,147 @@
+@page "/"
+@rendermode InteractiveServer
+@inject NavigationManager Nav
+
+<PageTitle>Colosseum — Enter the Arena</PageTitle>
+
+<div class="page">
+  <header>
+    <div class="logo-lockup">
+      <div class="logo-eyebrow">Agentic Code Review</div>
+      <div class="logo-title">COLOSSEUM</div>
+      <div class="logo-sub">Where your code faces its critics</div>
+    </div>
+    <div class="rule">
+      <div class="rule-line"></div>
+      <div class="rule-diamond"></div>
+      <div class="rule-line"></div>
+    </div>
+  </header>
+
+  <main>
+    <!-- PR URL Input -->
+    <div class="input-arena">
+      <label class="input-label" for="pr-url">GitHub Pull Request</label>
+      <div class="input-row @(_urlError != null ? "input-error" : "")">
+        <input id="pr-url" class="pr-input" type="text"
+               placeholder="https://github.com/owner/repo/pull/42"
+               @bind="_prUrl" @bind:event="oninput" @onkeyup="OnKeyUp" />
+        <button class="btn-enter" @onclick="Submit" disabled="@(_prUrl.Length == 0)">
+          <span>Enter the Arena &rarr;</span>
+        </button>
+      </div>
+      @if (_urlError != null)
+      {
+        <div class="input-hint error-hint">@_urlError</div>
+      }
+      else
+      {
+        <div class="input-hint">Public PRs require no token. Private repos: set GitHubToken in config.</div>
+      }
+    </div>
+
+    <!-- Squad Builder -->
+    <div class="squad-section">
+      <div class="section-header">
+        <div class="rule-line"></div>
+        <div class="section-title">Choose Your Gladiators</div>
+        <div class="rule-line" style="background: linear-gradient(90deg, transparent, var(--iron-lt));"></div>
+      </div>
+
+      <div class="gladiators-grid">
+        @foreach (var g in _gladiators)
+        {
+          <div class="gladiator-card card-@g.Name.ToLower() @(g.Active ? "active" : "")"
+               @onclick="() => ToggleGladiator(g)">
+            <div class="card-name">@g.Name</div>
+            <div class="card-domain">@g.Domain</div>
+            <div class="card-desc">@g.Description</div>
+          </div>
+        }
+      </div>
+
+      <!-- Rounds slider -->
+      <div class="rounds-row">
+        <span class="rounds-label">Rounds</span>
+        <input type="range" class="rounds-slider" min="1" max="3" value="@_rounds"
+               @oninput="OnRoundsChange" />
+        <span class="rounds-value">@_rounds</span>
+        <span class="rounds-desc">@RoundsDesc</span>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    Minimum 2 gladiators required &nbsp;&middot;&nbsp; Each turn capped at ~3 sentences &nbsp;&middot;&nbsp; Verdict rendered by the independent Arbiter
+  </footer>
+</div>
+
+@code {
+  string _prUrl = string.Empty;
+  string? _urlError;
+  int _rounds = 2;
+
+  class GladiatorVm
+  {
+    public string Name { get; init; } = "";
+    public string Domain { get; init; } = "";
+    public string Description { get; init; } = "";
+    public bool Active { get; set; } = true;
+  }
+
+  readonly List<GladiatorVm> _gladiators =
+  [
+    new() { Name = "Maximus", Domain = "Performance",           Description = "Hunts allocations, O(n\u00B2) sins, and premature abstractions. Aggressive. Never satisfied." },
+    new() { Name = "Brutus",  Domain = "DRY / YAGNI / Clean Code", Description = "Quotes Fowler. Counts duplicated lines. Considers copy-paste a personal insult." },
+    new() { Name = "Cassius", Domain = "DDD / Abstractions / SRP",  Description = "Guards domain boundaries. Despises god-classes. Draws invisible lines no one else sees." },
+    new() { Name = "Valeria", Domain = "Security",              Description = "Assumes breach. Flags every unvalidated input. Treats trust as a vulnerability." },
+  ];
+
+  string RoundsDesc => _rounds switch
+  {
+    1 => "— gladiators open; one round only",
+    3 => "— full three-round debate",
+    _ => "— each gladiator speaks twice"
+  };
+
+  void OnRoundsChange(ChangeEventArgs e)
+  {
+    if (int.TryParse(e.Value?.ToString(), out var v))
+      _rounds = v;
+  }
+
+  void ToggleGladiator(GladiatorVm g)
+  {
+    var activeCount = _gladiators.Count(x => x.Active);
+    if (g.Active && activeCount <= 2) return;
+    g.Active = !g.Active;
+  }
+
+  void OnKeyUp(KeyboardEventArgs e)
+  {
+    if (e.Key == "Enter") Submit();
+  }
+
+  void Submit()
+  {
+    _urlError = null;
+    var url = _prUrl.Trim();
+    if (string.IsNullOrWhiteSpace(url))
+    {
+      _urlError = "Please enter a GitHub PR URL.";
+      return;
+    }
+
+    var pattern = new System.Text.RegularExpressions.Regex(
+      @"github\.com/([^/]+)/([^/]+)/pull/(\d+)");
+    if (!pattern.IsMatch(url))
+    {
+      _urlError = "Invalid URL. Expected: https://github.com/owner/repo/pull/42";
+      return;
+    }
+
+    var activeNames = _gladiators.Where(g => g.Active).Select(g => g.Name);
+    var query = string.Join(",", activeNames);
+    Nav.NavigateTo($"/arena?pr={Uri.EscapeDataString(url)}&gladiators={Uri.EscapeDataString(query)}&rounds={_rounds}");
+  }
+}

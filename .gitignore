@@ -1,0 +1,22 @@
+# Build output
+bin/
+obj/
+*.user
+*.suo
+.vs/
+
+# Secrets — never commit these
+appsettings.Development.json
+secrets.json
+
+# Test results
+TestResults/
+coverage/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Rider / VSCode
+.idea/
+*.iml
