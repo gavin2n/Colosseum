@@ -15,3 +15,21 @@
 **Why**: Official SDK, well-maintained, supports streaming
 **Alternatives rejected**: Raw HttpClient (more work, less reliable)
 ---
+
+## [2026-03-07] session-1 (continued after context compaction)
+**Decision**: Use `new Message(RoleType.User, text)` constructor + `response.Message.ToString()` for Anthropic.SDK 5.x
+**Why**: SDK 5.x changed API — TextBlock type removed, Message constructor takes string directly
+**Alternatives rejected**: TextBlock (not in SDK 5.x), anonymous object initializer (wrong overload)
+---
+
+## [2026-03-07] session-1
+**Decision**: Create shared `GladiatorVm` record in `Colosseum.Web/Components/UI/Models.cs`
+**Why**: GladiatorStrip and Arena.razor both needed the same view model type; separate definitions caused type mismatch
+**Alternatives rejected**: Defining in each file (duplicate type error), using Core Gladiator model directly (ties UI to domain)
+---
+
+## [2026-03-07] session-1
+**Decision**: Use `.slnx` solution format (not `.sln`)
+**Why**: .NET 10 `dotnet new sln` creates `.slnx` by default; `.sln` is legacy format
+**Alternatives rejected**: `.sln` (old format, not default in .NET 10)
+---

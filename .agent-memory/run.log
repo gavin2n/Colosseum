@@ -1,0 +1,12 @@
+## [2026-03-07] Phase 1 · session-1 (two-part, context compacted mid-session)
+**Duration**: ~3h (estimated across both context windows)
+**Tokens**: input: ~300,000 · output: ~25,000 · total: ~325,000 (estimated)
+**Cost**: ~$3.00 (estimate)
+**Tasks completed**: n/a (Phase 1)
+**Memories added**:
+- decisions.log: 6 entries — model selection, phase scope, SDK choice, Anthropic.SDK 5.x API, GladiatorVm extraction, .slnx format
+- progress.md: updated — all tasks complete, pushed to GitHub
+- learnings.md: 4 entries — Anthropic.SDK 5.x API, .NET 10 Blazor template, .slnx format, build-test-fix loop
+**Notes**: Context compacted once mid-session. All 109 files committed in root commit.
+18/18 tests passing. Pushed to https://github.com/gavin2n/Colosseum (master branch).
+---
