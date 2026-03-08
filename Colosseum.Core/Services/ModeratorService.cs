@@ -21,7 +21,7 @@ public class ModeratorService(
         string rawText;
         try
         {
-            rawText = await claude.CompleteAsync(prompt, _opts.DebateModel, 2000, ct);
+            rawText = await claude.CompleteAsync(prompt, _opts.SummaryModel, _opts.MaxVerdictTokens, ct);
         }
         catch (Exception ex)
         {

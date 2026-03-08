@@ -1,9 +1,13 @@
+using Colosseum.Core.Configuration;
 using Colosseum.Core.Models;
+using Microsoft.Extensions.Options;
 
 namespace Colosseum.Core.Services;
 
-public class GladiatorService
+public class GladiatorService(IOptions<ColosseumOptions> options)
 {
+    private readonly ColosseumOptions _opts = options.Value;
+
     public string BuildPrompt(
         Gladiator gladiator,
         string diff,
@@ -52,11 +56,19 @@ public class GladiatorService
         sb.AppendLine(diff);
         sb.AppendLine("```");
 
-        // 5. Prior turns (full history)
+        // 5. Prior turns — windowed to avoid unbounded prompt growth.
         if (priorTurns.Count > 0)
         {
-            sb.AppendLine("\nDEBATE SO FAR:");
-            foreach (var t in priorTurns)
+            var window = priorTurns.Count > _opts.MaxContextTurns
+                ? priorTurns.Skip(priorTurns.Count - _opts.MaxContextTurns).ToList()
+                : priorTurns;
+
+            if (priorTurns.Count > _opts.MaxContextTurns)
+                sb.AppendLine($"\nDEBATE SO FAR (last {_opts.MaxContextTurns} turns shown; {priorTurns.Count - _opts.MaxContextTurns} earlier turns omitted):");
+            else
+                sb.AppendLine("\nDEBATE SO FAR:");
+
+            foreach (var t in window)
             {
                 var mentions = t.Mentions.Count > 0
                     ? $" [mentioned: {string.Join(", ", t.Mentions.Select(m => "@" + m))}]"

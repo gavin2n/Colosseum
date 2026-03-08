@@ -24,10 +24,6 @@ public class IssueTracker(ILogger<IssueTracker> logger)
         new(@"(?:I\s+dispute|disagree with)\s+@(\w+)",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-    private readonly List<Issue> _issues = [];
-
-    public IReadOnlyList<Issue> Issues => _issues.AsReadOnly();
-
     public (List<Issue> NewIssues, List<string> OverlapTitles) ParseAndApply(
         string turnText,
         Gladiator gladiator,
@@ -60,7 +56,6 @@ public class IssueTracker(ILogger<IssueTracker> logger)
                 gladiator.Id, gladiator.Name, Stance.Raised,
                 issue.Description, DateTimeOffset.UtcNow));
 
-            _issues.Add(issue);
             newIssues.Add(issue);
         }
 
@@ -76,7 +71,7 @@ public class IssueTracker(ILogger<IssueTracker> logger)
             }
             overlapTitles.Add(matched.Title);
             matched.DebateTrail.Add(new IssueDebateEntry(
-                gladiator.Id, gladiator.Name, Stance.Disputes,
+                gladiator.Id, gladiator.Name, Stance.Overlap,
                 $"[Overlap signal] {gladiator.Name} flagged overlap with this issue.",
                 DateTimeOffset.UtcNow));
         }

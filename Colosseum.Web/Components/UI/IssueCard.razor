@@ -1,5 +1,6 @@
 @namespace Colosseum.Web.Components.UI
 @using Colosseum.Core.Models
+@inject IJSRuntime JS
 
 <div class="issue-card @(Issue.Status == IssueStatus.Dismissed ? "dismissed" : "") @(Issue.MergeCandidate.HasValue ? "merge-candidate" : "") @(_open ? "open" : "")"
      id="issue-@Issue.Id" style="--i-col:@GladiatorColour(Issue.RaisedByGladiatorName)">
@@ -7,7 +8,7 @@
   <div class="issue-head" @onclick="Toggle">
     <div class="issue-top">
       <span class="issue-rank @(Issue.Status == IssueStatus.Dismissed ? "dismissed-rank" : "")">
-        @(Issue.Status == IssueStatus.Dismissed ? "✕" : $"#{_rank}")
+        @(Issue.Status == IssueStatus.Dismissed ? "✕" : $"#{Rank}")
       </span>
       <span class="issue-title">@Issue.Title</span>
       <span class="issue-chevron">▶</span>
@@ -17,7 +18,6 @@
       <span class="badge badge-dom">@Issue.RaisedByGladiatorName</span>
       @if (Issue.MergeCandidate.HasValue)
       {
-        var other = AllIssues.FirstOrDefault(i => i.Id == Issue.MergeCandidate);
         <span class="merge-badge" @onclick:stopPropagation @onclick="() => ScrollToIssue(Issue.MergeCandidate!.Value)">
           <span class="merge-badge-icon">⚭</span> may overlap
         </span>
@@ -72,12 +72,10 @@
 @code {
   [Parameter, EditorRequired] public Issue Issue { get; set; } = null!;
   [Parameter] public IReadOnlyList<Issue> AllIssues { get; set; } = [];
+  /// <summary>Pre-computed rank passed from parent to avoid O(n²) per-render sort.</summary>
+  [Parameter] public int Rank { get; set; }
 
   bool _open;
-  int _rank => AllIssues.Where(i => i.Status != IssueStatus.Dismissed)
-                         .OrderByDescending(i => i.VotesFor)
-                         .ThenBy(i => i.VotesAgainst)
-                         .ToList().IndexOf(Issue) + 1;
 
   double VotePct
   {
@@ -90,10 +88,8 @@
 
   void Toggle() => _open = !_open;
 
-  void ScrollToIssue(Guid id)
-  {
-    // JS interop would scroll in real impl — placeholder
-  }
+  async Task ScrollToIssue(Guid id)
+    => await JS.InvokeVoidAsync("scrollToIssue", $"issue-{id}");
 
   static string GladiatorColour(string name) => name.ToLower() switch
   {

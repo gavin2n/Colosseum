@@ -5,6 +5,7 @@ public record DebateTurn(
     Guid GladiatorId,
     string GladiatorName,
     string GladiatorAccentColour,
+    string GladiatorDomain,
     int Round,
     int TurnIndex,
     string Text,

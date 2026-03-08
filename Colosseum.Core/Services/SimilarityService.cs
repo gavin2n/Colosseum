@@ -12,8 +12,9 @@ public class SimilarityService(
     ILogger<SimilarityService> logger)
 {
     private readonly ColosseumOptions _opts = options.Value;
-    // Cache: (issueAId, issueBId) -> similarity result to avoid duplicate API calls
-    private readonly Dictionary<(Guid, Guid), bool> _cache = [];
+    // Cache: (issueAId, issueBId) -> similarity result to avoid duplicate API calls.
+    // ConcurrentDictionary is required because the singleton is shared across concurrent sessions.
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<(Guid, Guid), bool> _cache = new();
 
     public async Task<List<(Issue Issue, float Score)>> FindCandidatesAsync(
         Issue newIssue,
@@ -114,7 +115,7 @@ public class SimilarityService(
     private static HashSet<string> GetTrigrams(string s)
     {
         var trigrams = new HashSet<string>();
-        var padded = "  " + s + "  ";
+        var padded = " " + s + " ";
         for (var i = 0; i < padded.Length - 2; i++)
             trigrams.Add(padded.Substring(i, 3));
         return trigrams;

@@ -14,6 +14,17 @@ public class GitHubService(IOptions<ColosseumOptions> options, ILogger<GitHubSer
     private static readonly System.Text.RegularExpressions.Regex PrUrlRegex =
         new(@"github\.com/([^/]+)/([^/]+)/pull/(\d+)", System.Text.RegularExpressions.RegexOptions.Compiled);
 
+    // Reuse a single client instance — constructing one per request risks socket exhaustion.
+    private readonly GitHubClient _client = CreateClient(options.Value);
+
+    private static GitHubClient CreateClient(ColosseumOptions opts)
+    {
+        var client = new GitHubClient(new ProductHeaderValue("Colosseum"));
+        if (!string.IsNullOrWhiteSpace(opts.GitHubToken))
+            client.Credentials = new Credentials(opts.GitHubToken);
+        return client;
+    }
+
     public (string Owner, string Repo, int Number) ParsePrUrl(string url)
     {
         var m = PrUrlRegex.Match(url);
@@ -26,31 +37,38 @@ public class GitHubService(IOptions<ColosseumOptions> options, ILogger<GitHubSer
     {
         var (owner, repo, number) = ParsePrUrl(prUrl);
 
-        var client = new GitHubClient(new ProductHeaderValue("Colosseum"));
-        if (!string.IsNullOrWhiteSpace(_opts.GitHubToken))
-            client.Credentials = new Credentials(_opts.GitHubToken);
-
         PullRequest? pr = null;
         try
         {
-            pr = await client.PullRequest.Get(owner, repo, number);
+            pr = await _client.PullRequest.Get(owner, repo, number);
         }
         catch (NotFoundException)
         {
             throw new InvalidOperationException($"PR #{number} not found in {owner}/{repo}. Check the URL and GitHub token.");
         }
+        catch (RateLimitExceededException ex)
+        {
+            throw new InvalidOperationException(
+                $"GitHub API rate limit exceeded. Resets at {ex.Reset:HH:mm} UTC. Use a GitHub token to raise the limit.", ex);
+        }
+        catch (AuthorizationException)
+        {
+            throw new InvalidOperationException("GitHub token is invalid or lacks read access to this repository.");
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            throw new InvalidOperationException($"Failed to reach GitHub API: {ex.Message}", ex);
+        }
 
-        var diff = await FetchDiffAsync(client, owner, repo, number, ct);
+        var diff = await FetchDiffAsync(owner, repo, number, ct);
 
         return new PrInfo(owner, repo, number, pr.Title, diff);
     }
 
-    private async Task<string> FetchDiffAsync(
-        GitHubClient client, string owner, string repo, int number, CancellationToken ct)
+    private async Task<string> FetchDiffAsync(string owner, string repo, int number, CancellationToken ct)
     {
         // Octokit can fetch raw diff via Accept header
-        var connection = client.Connection;
-        var response = await connection.Get<string>(
+        var response = await _client.Connection.Get<string>(
             new Uri($"https://api.github.com/repos/{owner}/{repo}/pulls/{number}"),
             new Dictionary<string, string> { ["Accept"] = "application/vnd.github.v3.diff" });
 

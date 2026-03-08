@@ -24,7 +24,7 @@ public class DebateOrchestrator(
 
     public async Task RunAsync(
         ReviewSession session,
-        IProgress<DebateEvent> progress,
+        Func<DebateEvent, Task> onEvent,
         CancellationToken ct = default)
     {
         session.Status = SessionStatus.Running;
@@ -40,7 +40,7 @@ public class DebateOrchestrator(
             {
                 ct.ThrowIfCancellationRequested();
 
-                progress.Report(new GladiatorTyping(gladiator.Name, gladiator.AccentColour));
+                await onEvent(new GladiatorTyping(gladiator.Name, gladiator.AccentColour));
 
                 string turnText;
                 try
@@ -58,7 +58,7 @@ public class DebateOrchestrator(
                 catch (OperationCanceledException)
                 {
                     session.Status = SessionStatus.Cancelled;
-                    progress.Report(new DebateComplete());
+                    await onEvent(new DebateComplete());
                     return;
                 }
                 catch (Exception ex)
@@ -74,11 +74,11 @@ public class DebateOrchestrator(
                 var (newIssues, overlapTitles) = issueTracker.ParseAndApply(
                     turnText, gladiator, session.Issues);
 
-                // Similarity detection for each new issue
+                // For each new issue: add to session, run similarity, THEN fire IssueRaised
+                // so the client receives the issue already tagged as a merge candidate if applicable.
                 foreach (var issue in newIssues)
                 {
                     session.Issues.Add(issue);
-                    progress.Report(new IssueRaised(issue));
 
                     try
                     {
@@ -90,15 +90,25 @@ public class DebateOrchestrator(
                             issue, existingIssues, ct);
 
                         foreach (var (candidate, _) in candidates)
-                        {
                             issueTracker.FlagMergeCandidate(issue, candidate);
-                            progress.Report(new IssueUpdated(issue));
-                            progress.Report(new IssueUpdated(candidate));
-                        }
+
+                        // IssueRaised fires after merge-candidate status is set
+                        await onEvent(new IssueRaised(issue));
+
+                        // Notify clients that existing candidates were also updated
+                        foreach (var (candidate, _) in candidates)
+                            await onEvent(new IssueUpdated(candidate));
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        session.Status = SessionStatus.Cancelled;
+                        await onEvent(new DebateComplete());
+                        return;
                     }
                     catch (Exception ex)
                     {
-                        logger.LogWarning(ex, "Similarity detection failed for issue '{Title}' — continuing", issue.Title);
+                        logger.LogWarning(ex, "Similarity detection failed for issue '{Title}' — firing IssueRaised anyway", issue.Title);
+                        await onEvent(new IssueRaised(issue));
                     }
                 }
 
@@ -110,7 +120,7 @@ public class DebateOrchestrator(
                     if (matched is not null)
                     {
                         referencedIssueIds.Add(matched.Id);
-                        progress.Report(new IssueUpdated(matched));
+                        await onEvent(new IssueUpdated(matched));
                     }
                 }
 
@@ -119,6 +129,7 @@ public class DebateOrchestrator(
                     gladiator.Id,
                     gladiator.Name,
                     gladiator.AccentColour,
+                    gladiator.Domain,
                     round,
                     turnIndex++,
                     turnText,
@@ -127,12 +138,12 @@ public class DebateOrchestrator(
                     DateTimeOffset.UtcNow);
 
                 session.Turns.Add(turn);
-                progress.Report(new TurnCompleted(turn));
+                await onEvent(new TurnCompleted(turn));
             }
         }
 
         session.Status = SessionStatus.Complete;
         session.CompletedAt = DateTimeOffset.UtcNow;
-        progress.Report(new DebateComplete());
+        await onEvent(new DebateComplete());
     }
 }

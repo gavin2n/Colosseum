@@ -1,6 +1,7 @@
 using Anthropic.SDK;
 using Colosseum.Core.Configuration;
 using Colosseum.Core.Services;
+using Colosseum.Web;
 using Colosseum.Web.Components;
 using Colosseum.Web.Hubs;
 using Microsoft.Extensions.Options;
@@ -37,6 +38,7 @@ builder.Services.AddSingleton<IClaudeProvider>(sp =>
 builder.Services.AddSingleton<ClaudeCliProvider>();
 
 // ── Core services ───────────────────────────────────────────────────────────
+builder.Services.AddSingleton<SessionRegistry>();
 builder.Services.AddSingleton<GitHubService>();
 builder.Services.AddSingleton<GladiatorService>();
 builder.Services.AddSingleton<SimilarityService>();

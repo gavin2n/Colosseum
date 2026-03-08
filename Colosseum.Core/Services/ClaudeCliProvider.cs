@@ -50,17 +50,30 @@ public class ClaudeCliProvider(
                 "Ensure the claude CLI is installed and on your PATH (or set Colosseum:CliBinaryPath).", ex);
         }
 
+        // Link the caller's token with a per-call timeout so a hung process never blocks forever.
+        using var timeoutCts = new CancellationTokenSource(
+            TimeSpan.FromSeconds(_opts.ClaudeCallTimeoutSeconds));
+        using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, timeoutCts.Token);
+        var linkedToken = linkedCts.Token;
+
+        // Kill the child process tree whenever cancellation fires (timeout or caller cancel).
+        await using var killReg = linkedToken.Register(() =>
+        {
+            try { process.Kill(entireProcessTree: true); }
+            catch { /* process may have already exited */ }
+        });
+
         // Write prompt to stdin, then close to signal EOF
-        await process.StandardInput.WriteAsync(prompt.AsMemory(), ct);
+        await process.StandardInput.WriteAsync(prompt.AsMemory(), linkedToken);
         process.StandardInput.Close();
 
-        var outputTask = process.StandardOutput.ReadToEndAsync(ct);
-        var errorTask  = process.StandardError.ReadToEndAsync(ct);
+        var outputTask = process.StandardOutput.ReadToEndAsync(linkedToken);
+        var errorTask = process.StandardError.ReadToEndAsync(linkedToken);
 
-        await process.WaitForExitAsync(ct);
+        await process.WaitForExitAsync(linkedToken);
 
         var output = await outputTask;
-        var error  = await errorTask;
+        var error = await errorTask;
 
         if (process.ExitCode != 0)
         {

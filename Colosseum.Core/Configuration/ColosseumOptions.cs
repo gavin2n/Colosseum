@@ -39,6 +39,15 @@ public class ColosseumOptions
 
     public int MaxDiffTokens { get; set; } = 8000;
 
+    /// <summary>Per-call timeout in seconds for Claude providers. Prevents hung processes blocking sessions.</summary>
+    public int ClaudeCallTimeoutSeconds { get; set; } = 120;
+
+    /// <summary>Max token budget for the Arbiter verdict response.</summary>
+    public int MaxVerdictTokens { get; set; } = 2000;
+
+    /// <summary>How many prior turns to include in each gladiator prompt. Older turns are omitted to cap token growth.</summary>
+    public int MaxContextTurns { get; set; } = 10;
+
     public string DebateModel { get; set; } = "claude-sonnet-4-6";
 
     public string SummaryModel { get; set; } = "claude-haiku-4-5-20251001";

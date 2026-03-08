@@ -1,5 +1,6 @@
 @namespace Colosseum.Web.Components.UI
 @using Colosseum.Core.Models
+@inject IJSRuntime JS
 
 @if (Verdict is null)
 {
@@ -76,8 +77,43 @@ else
 @code {
   [Parameter] public Verdict? Verdict { get; set; }
 
-  void ExportMarkdown()
+  async Task ExportMarkdown()
   {
-    // JS interop download — placeholder for now
+    if (Verdict is null) return;
+
+    var sb = new System.Text.StringBuilder();
+    sb.AppendLine("# Colosseum Arbiter Verdict\n");
+
+    if (!string.IsNullOrWhiteSpace(Verdict.Summary))
+    {
+      sb.AppendLine("## Summary\n");
+      sb.AppendLine(Verdict.Summary);
+      sb.AppendLine();
+    }
+
+    if (Verdict.RankedIssues.Count > 0)
+    {
+      sb.AppendLine("## Ranked Issues\n");
+      foreach (var ri in Verdict.RankedIssues.OrderBy(r => r.Rank))
+        sb.AppendLine($"**#{ri.Rank}** — {ri.Rationale}");
+      sb.AppendLine();
+    }
+
+    if (Verdict.MergedIssues.Count > 0)
+    {
+      sb.AppendLine("## Merge Resolutions\n");
+      foreach (var res in Verdict.MergedIssues)
+        sb.AppendLine($"- **{res.Decision}**: {res.Reason}");
+      sb.AppendLine();
+    }
+
+    if (Verdict.DismissedIssues.Count > 0)
+    {
+      sb.AppendLine("## Dismissed Issues\n");
+      foreach (var d in Verdict.DismissedIssues)
+        sb.AppendLine($"- {d.Reason}");
+    }
+
+    await JS.InvokeVoidAsync("downloadFile", "colosseum-verdict.md", sb.ToString());
   }
 }
