@@ -1,0 +1,29 @@
+{
+  "recommendations": [
+    // C# / .NET
+    "ms-dotnettools.csdevkit",          // C# Dev Kit — IntelliSense, test explorer, debugger
+    "ms-dotnettools.csharp",            // C# language support (pulled by Dev Kit)
+    "ms-dotnettools.vscode-dotnet-runtime",
+
+    // Blazor / Razor
+    "ms-dotnettools.blazorwasm-companion",
+
+    // Git / GitHub
+    "github.vscode-pull-request-github",
+    "eamodio.gitlens",
+
+    // Formatting / linting
+    "editorconfig.editorconfig",
+    "davidanson.vscode-markdownlint",
+
+    // Docker (for E2E Playwright container)
+    "ms-azuretools.vscode-docker",
+
+    // Productivity
+    "ms-vscode.vscode-json",
+    "bradlc.vscode-tailwindcss"         // optional — if CSS utility classes added later
+  ],
+  "unwantedRecommendations": [
+    "ms-vscode.csharp"                  // legacy extension — superseded by Dev Kit
+  ]
+}

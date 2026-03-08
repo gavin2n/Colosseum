@@ -1,0 +1,179 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+
+    // ── Build ────────────────────────────────────────────────────────────────
+
+    {
+      "label": "build",
+      "detail": "Build the entire solution",
+      "type": "shell",
+      "command": "dotnet build Colosseum.slnx",
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": "$msCompile",
+      "presentation": { "reveal": "silent", "panel": "shared" }
+    },
+    {
+      "label": "build: web only",
+      "detail": "Build Colosseum.Web (faster iteration)",
+      "type": "shell",
+      "command": "dotnet build Colosseum.Web/",
+      "group": "build",
+      "problemMatcher": "$msCompile",
+      "presentation": { "reveal": "silent", "panel": "shared" }
+    },
+
+    // ── Run ─────────────────────────────────────────────────────────────────
+
+    {
+      "label": "run: http",
+      "detail": "Run the app on http://localhost:5287",
+      "type": "shell",
+      "command": "dotnet run --project Colosseum.Web/ --launch-profile http",
+      "group": "none",
+      "problemMatcher": [],
+      "isBackground": true,
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+      "dependsOn": "build"
+    },
+    {
+      "label": "run: https",
+      "detail": "Run the app on https://localhost:7273",
+      "type": "shell",
+      "command": "dotnet run --project Colosseum.Web/ --launch-profile https",
+      "group": "none",
+      "problemMatcher": [],
+      "isBackground": true,
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+      "dependsOn": "build"
+    },
+    {
+      "label": "watch: hot reload",
+      "detail": "Run with dotnet watch (hot reload on file changes)",
+      "type": "shell",
+      "command": "dotnet watch run --project Colosseum.Web/ --launch-profile http",
+      "group": "none",
+      "problemMatcher": [],
+      "isBackground": true,
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
+    },
+
+    // ── Test ─────────────────────────────────────────────────────────────────
+
+    {
+      "label": "test",
+      "detail": "Run all unit tests",
+      "type": "shell",
+      "command": "dotnet test Colosseum.Tests/ --logger \"console;verbosity=normal\"",
+      "group": { "kind": "test", "isDefault": true },
+      "problemMatcher": "$msCompile",
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
+    },
+    {
+      "label": "test: watch",
+      "detail": "Re-run tests on every file change",
+      "type": "shell",
+      "command": "dotnet watch test --project Colosseum.Tests/",
+      "group": "test",
+      "problemMatcher": [],
+      "isBackground": true,
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
+    },
+    {
+      "label": "test: filter",
+      "detail": "Run a specific test by name (prompted)",
+      "type": "shell",
+      "command": "dotnet test Colosseum.Tests/ --filter \"FullyQualifiedName~${input:testFilter}\" --logger \"console;verbosity=normal\"",
+      "group": "test",
+      "problemMatcher": "$msCompile",
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
+    },
+    {
+      "label": "test: coverage",
+      "detail": "Run tests with code coverage (Coverlet)",
+      "type": "shell",
+      "command": "dotnet test Colosseum.Tests/ --collect:\"XPlat Code Coverage\" --results-directory ./coverage",
+      "group": "test",
+      "problemMatcher": "$msCompile",
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
+    },
+
+    // ── E2E ──────────────────────────────────────────────────────────────────
+
+    {
+      "label": "e2e: all",
+      "detail": "Build app, run Playwright E2E suite in Docker, stop app",
+      "type": "shell",
+      "command": "./e2e.sh",
+      "group": "test",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
+    },
+    {
+      "label": "e2e: filter",
+      "detail": "Run a single E2E test by name (prompted)",
+      "type": "shell",
+      "command": "./e2e.sh --filter \"${input:e2eFilter}\"",
+      "group": "test",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
+    },
+
+    // ── Format ───────────────────────────────────────────────────────────────
+
+    {
+      "label": "format: fix",
+      "detail": "Auto-fix formatting across the solution",
+      "type": "shell",
+      "command": "dotnet format",
+      "group": "none",
+      "problemMatcher": [],
+      "presentation": { "reveal": "silent", "panel": "shared" }
+    },
+    {
+      "label": "format: verify",
+      "detail": "Check formatting without making changes (CI gate)",
+      "type": "shell",
+      "command": "dotnet format --verify-no-changes",
+      "group": "none",
+      "problemMatcher": "$msCompile",
+      "presentation": { "reveal": "always", "panel": "shared" }
+    },
+
+    // ── Squad (multi-agent tmux) ─────────────────────────────────────────────
+
+    {
+      "label": "squad: launch",
+      "detail": "Start all agent tracks in tmux session 'colosseum'",
+      "type": "shell",
+      "command": "./squad.sh",
+      "group": "none",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated" }
+    },
+    {
+      "label": "squad: kill",
+      "detail": "Tear down the 'colosseum' tmux session",
+      "type": "shell",
+      "command": "./squad.sh --kill",
+      "group": "none",
+      "problemMatcher": [],
+      "presentation": { "reveal": "silent", "panel": "shared" }
+    }
+  ],
+
+  "inputs": [
+    {
+      "id": "testFilter",
+      "type": "promptString",
+      "description": "Test name substring (e.g. DebateOrchestrator)",
+      "default": ""
+    },
+    {
+      "id": "e2eFilter",
+      "type": "promptString",
+      "description": "E2E test name (e.g. Arena_LoadsWithValidPr)",
+      "default": ""
+    }
+  ]
+}

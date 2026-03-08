@@ -1,0 +1,46 @@
+{
+  // ── Editor ──────────────────────────────────────────────────────────────
+  "editor.formatOnSave": true,
+  "editor.formatOnType": false,
+  "editor.rulers": [120],
+  "editor.tabSize": 4,
+  "editor.insertSpaces": true,
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+
+  // ── C# ──────────────────────────────────────────────────────────────────
+  "dotnet.defaultSolution": "Colosseum.slnx",
+  "omnisharp.enableRoslynAnalyzers": true,
+  "omnisharp.enableEditorConfigSupport": true,
+  "csharp.debug.console": "integratedTerminal",
+
+  // ── Test Explorer ────────────────────────────────────────────────────────
+  "dotnet-test-explorer.testProjectPath": "Colosseum.Tests/Colosseum.Tests.csproj",
+  "dotnet-test-explorer.autoWatch": false,
+
+  // ── File associations ────────────────────────────────────────────────────
+  "files.associations": {
+    "*.razor": "aspnetcorerazor",
+    "*.slnx": "xml"
+  },
+
+  // ── Files to exclude from explorer ──────────────────────────────────────
+  "files.exclude": {
+    "**/bin": true,
+    "**/obj": true,
+    "**/.git": true
+  },
+  "search.exclude": {
+    "**/bin": true,
+    "**/obj": true,
+    "**/coverage": true
+  },
+
+  // ── Terminal ─────────────────────────────────────────────────────────────
+  "terminal.integrated.defaultProfile.linux": "bash",
+  "terminal.integrated.cwd": "${workspaceFolder}",
+
+  // ── Git ──────────────────────────────────────────────────────────────────
+  "git.autofetch": true,
+  "git.confirmSync": false
+}
