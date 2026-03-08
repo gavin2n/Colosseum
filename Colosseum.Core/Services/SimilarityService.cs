@@ -1,6 +1,4 @@
 using System.Text.Json;
-using Anthropic.SDK;
-using Anthropic.SDK.Messaging;
 using Colosseum.Core.Configuration;
 using Colosseum.Core.Models;
 using Microsoft.Extensions.Logging;
@@ -9,7 +7,7 @@ using Microsoft.Extensions.Options;
 namespace Colosseum.Core.Services;
 
 public class SimilarityService(
-    AnthropicClient claude,
+    IClaudeProvider claude,
     IOptions<ColosseumOptions> options,
     ILogger<SimilarityService> logger)
 {
@@ -75,16 +73,7 @@ public class SimilarityService(
                 Reply ONLY with JSON: { "similar": true|false, "confidence": 0.0-1.0, "reason": "string" }
                 """;
 
-            var request = new MessageParameters
-            {
-                Model = _opts.SummaryModel,
-                MaxTokens = 150,
-                Stream = false,
-                Messages = [new Message(RoleType.User, prompt)]
-            };
-
-            var response = await claude.Messages.GetClaudeMessageAsync(request, ct);
-            var text = response.Message.ToString() ?? string.Empty;
+            var text = await claude.CompleteAsync(prompt, _opts.SummaryModel, 150, ct);
 
             // Extract JSON from response
             var start = text.IndexOf('{');

@@ -6,7 +6,21 @@ public class ColosseumOptions
 {
     public const string Section = "Colosseum";
 
-    [Required]
+    /// <summary>
+    /// Which Claude backend to use. "Cli" (default) uses the local claude CLI;
+    /// "Sdk" uses the Anthropic API directly and requires AnthropicApiKey.
+    /// </summary>
+    public string Provider { get; set; } = "Cli";
+
+    /// <summary>
+    /// Path to the claude CLI binary. Defaults to "claude" (assumes it's on PATH).
+    /// Only used when Provider = "Cli".
+    /// </summary>
+    public string CliBinaryPath { get; set; } = "claude";
+
+    /// <summary>
+    /// Anthropic API key. Only required when Provider = "Sdk".
+    /// </summary>
     public string AnthropicApiKey { get; set; } = string.Empty;
 
     public string? GitHubToken { get; set; }

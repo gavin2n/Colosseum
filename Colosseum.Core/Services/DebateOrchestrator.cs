@@ -1,5 +1,3 @@
-using Anthropic.SDK;
-using Anthropic.SDK.Messaging;
 using Colosseum.Core.Configuration;
 using Colosseum.Core.Models;
 using Microsoft.Extensions.Logging;
@@ -15,7 +13,7 @@ public record DebateComplete : DebateEvent;
 public record GladiatorTyping(string GladiatorName, string AccentColour) : DebateEvent;
 
 public class DebateOrchestrator(
-    AnthropicClient claude,
+    IClaudeProvider claude,
     GladiatorService gladiatorService,
     IssueTracker issueTracker,
     SimilarityService similarityService,
@@ -55,16 +53,7 @@ public class DebateOrchestrator(
                         session.Squad,
                         round);
 
-                    var request = new MessageParameters
-                    {
-                        Model = _opts.DebateModel,
-                        MaxTokens = _opts.MaxTurnTokens,
-                        Stream = false,
-                        Messages = [new Message(RoleType.User, prompt)]
-                    };
-
-                    var response = await claude.Messages.GetClaudeMessageAsync(request, ct);
-                    turnText = response.Message.ToString() ?? string.Empty;
+                    turnText = await claude.CompleteAsync(prompt, _opts.DebateModel, _opts.MaxTurnTokens, ct);
                 }
                 catch (OperationCanceledException)
                 {
@@ -74,7 +63,7 @@ public class DebateOrchestrator(
                 }
                 catch (Exception ex)
                 {
-                    logger.LogError(ex, "Claude API error for {Gladiator} round {Round} — skipping turn", gladiator.Name, round);
+                    logger.LogError(ex, "Claude error for {Gladiator} round {Round} — skipping turn", gladiator.Name, round);
                     continue;
                 }
 

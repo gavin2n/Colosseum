@@ -1,6 +1,4 @@
 using System.Text.Json;
-using Anthropic.SDK;
-using Anthropic.SDK.Messaging;
 using Colosseum.Core.Configuration;
 using Colosseum.Core.Models;
 using Microsoft.Extensions.Logging;
@@ -9,7 +7,7 @@ using Microsoft.Extensions.Options;
 namespace Colosseum.Core.Services;
 
 public class ModeratorService(
-    AnthropicClient claude,
+    IClaudeProvider claude,
     GladiatorService gladiatorService,
     IOptions<ColosseumOptions> options,
     ILogger<ModeratorService> logger)
@@ -23,21 +21,12 @@ public class ModeratorService(
         string rawText;
         try
         {
-            var request = new MessageParameters
-            {
-                Model = _opts.DebateModel,
-                MaxTokens = 2000,
-                Stream = false,
-                Messages = [new Message(RoleType.User, prompt)]
-            };
-
-            var response = await claude.Messages.GetClaudeMessageAsync(request, ct);
-            rawText = response.Message.ToString() ?? string.Empty;
+            rawText = await claude.CompleteAsync(prompt, _opts.DebateModel, 2000, ct);
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Arbiter verdict call failed");
-            return new Verdict { ParseFailed = true, RawSummary = "Arbiter API call failed." };
+            return new Verdict { ParseFailed = true, RawSummary = "Arbiter call failed." };
         }
 
         return ParseVerdict(rawText, session);

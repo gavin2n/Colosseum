@@ -13,15 +13,28 @@ builder.Services.AddOptions<ColosseumOptions>()
     .ValidateDataAnnotations()
     .ValidateOnStart();
 
-// ── Anthropic SDK ───────────────────────────────────────────────────────────
-builder.Services.AddSingleton(sp =>
+// ── Claude provider ─────────────────────────────────────────────────────────
+// Default: "Cli" — uses the local `claude` CLI (no API key needed).
+// Set Colosseum:Provider = "Sdk" to use the Anthropic SDK with an API key.
+builder.Services.AddSingleton<IClaudeProvider>(sp =>
 {
     var opts = sp.GetRequiredService<IOptions<ColosseumOptions>>().Value;
-    if (string.IsNullOrWhiteSpace(opts.AnthropicApiKey))
-        throw new InvalidOperationException(
-            "AnthropicApiKey is not configured. Set Colosseum:AnthropicApiKey in appsettings.json or environment variables.");
-    return new AnthropicClient(opts.AnthropicApiKey);
+
+    if (string.Equals(opts.Provider, "Sdk", StringComparison.OrdinalIgnoreCase))
+    {
+        if (string.IsNullOrWhiteSpace(opts.AnthropicApiKey))
+            throw new InvalidOperationException(
+                "Colosseum:Provider is \"Sdk\" but Colosseum:AnthropicApiKey is not set.");
+
+        var client = new AnthropicClient(opts.AnthropicApiKey);
+        return new AnthropicSdkProvider(client);
+    }
+
+    // Default: CLI
+    return sp.GetRequiredService<ClaudeCliProvider>();
 });
+
+builder.Services.AddSingleton<ClaudeCliProvider>();
 
 // ── Core services ───────────────────────────────────────────────────────────
 builder.Services.AddSingleton<GitHubService>();
